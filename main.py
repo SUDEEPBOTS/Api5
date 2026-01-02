@@ -46,7 +46,7 @@ def extract():
             
             # 👇 MAGIC FIX: "ok" status bhej rahe hain
             return jsonify({
-                "status": "ok",  
+                "status": "200",  
                 "title": info.get('title'),
                 "url": info.get('url'),
                 "link": info.get('url'),
