@@ -1,25 +1,48 @@
 import os
 import yt_dlp
 from flask import Flask, request, jsonify
-import traceback # Error ki puri kundli nikalne ke liye
+import traceback
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # Home page pe hi check kar lenge ki cookies hai ya nahi
     cookie_status = "✅ FOUND" if os.path.exists("cookies.txt") else "❌ MISSING"
     return f"API Status: ONLINE 🔥<br>Cookies File: {cookie_status}"
 
 @app.route('/extract')
 def extract():
-    # 1. PRINT: Dekhte hain request mein kya aaya
     url = request.args.get('url')
-    print(f"\n🔵 [NEW REQUEST] Aaya hua URL: {url}")
+    print(f"\n🔵 [RAW REQUEST] Bot ne bheja: {url}")
     
     if not url:
-        print("🔴 ERROR: URL nahi mila request mein!")
         return jsonify({"error": "No URL provided"}), 400
+
+    # ==========================================
+    # 🛠️ SMART FIXER (Ye naya code hai)
+    # ==========================================
+    # Agar bot "/song/ID" bhej raha hai, toh hum usse asli link banayenge
+    if "/song/" in url:
+        try:
+            # "/song/" ke baad wala hissa (Video ID) nikaalo
+            # Example: /song/LV_wiOhO40Q?api=None -> LV_wiOhO40Q
+            clean_id = url.split("/song/")[1].split("?")[0]
+            
+            # Asli YouTube Link banao
+            url = f"https://www.youtube.com/watch?v={clean_id}"
+            print(f"✨ [AUTO-FIX] URL badal diya gaya: {url}")
+        except Exception as e:
+            print(f"⚠️ URL fix karne me dikkat aayi: {e}")
+
+    # Agar bot "/video/" bhej raha hai (Video play ke liye)
+    elif "/video/" in url:
+        try:
+            clean_id = url.split("/video/")[1].split("?")[0]
+            url = f"https://www.youtube.com/watch?v={clean_id}"
+            print(f"✨ [AUTO-FIX] Video URL badal diya gaya: {url}")
+        except:
+            pass
+    # ==========================================
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -28,20 +51,18 @@ def extract():
         'geo_bypass': True,
     }
 
-    # 2. PRINT: Cookies check
     if os.path.exists('cookies.txt'):
-        print("🟢 INFO: Cookies file mil gayi, use kar raha hu.")
+        print("🟢 INFO: Cookies file mil gayi.")
         ydl_opts['cookiefile'] = 'cookies.txt'
     else:
-        print("jw WARNING: Cookies file nahi mili! Bina cookies ke try karunga.")
+        print("jw WARNING: Cookies file nahi mili!")
 
     try:
-        print("🟡 STATUS: yt-dlp download start kar raha hai...")
+        print(f"🟡 STATUS: Downloading metadata for: {url}")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
-            # 3. PRINT: Success hone par
-            print(f"🟢 SUCCESS: Song mil gaya! Title: {info.get('title')}")
+            print(f"🟢 SUCCESS: Title mil gaya -> {info.get('title')}")
             
             return jsonify({
                 "status": "success",
@@ -52,16 +73,10 @@ def extract():
             })
 
     except Exception as e:
-        # 4. PRINT: Agar fat gaya toh kyu fata?
         error_msg = str(e)
-        full_traceback = traceback.format_exc()
-        
-        print(f"🔴 CRASH: Error aa gaya!")
-        print(f"Error Message: {error_msg}")
-        print(f"Full Details: {full_traceback}")
-        
-        return jsonify({"error": error_msg, "details": "Check Heroku Logs for full traceback"}), 500
+        print(f"🔴 CRASH: {error_msg}")
+        return jsonify({"error": error_msg}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-    pp
+    
