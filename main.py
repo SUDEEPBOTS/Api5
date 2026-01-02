@@ -16,9 +16,11 @@ def extract():
     print(f"\n🔵 [RAW REQUEST] Bot ne bheja: {url}")
     
     if not url:
-        return jsonify({"error": "No URL provided", "status": False}), 400
+        return jsonify({"error": "No URL provided", "status": "false"}), 400
 
-    # 🛠️ SMART FIXER (Link thik karne wala logic)
+    # ==========================================
+    # 🛠️ SMART FIXER
+    # ==========================================
     if "/song/" in url:
         try:
             clean_id = url.split("/song/")[1].split("?")[0]
@@ -30,8 +32,10 @@ def extract():
         try:
             clean_id = url.split("/video/")[1].split("?")[0]
             url = f"https://www.youtube.com/watch?v={clean_id}"
+            print(f"✨ [AUTO-FIX] Video URL badal diya gaya: {url}")
         except:
             pass
+    # ==========================================
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -41,7 +45,10 @@ def extract():
     }
 
     if os.path.exists('cookies.txt'):
+        print("🟢 INFO: Cookies file mil gayi.")
         ydl_opts['cookiefile'] = 'cookies.txt'
+    else:
+        print("jw WARNING: Cookies file nahi mili!")
 
     try:
         print(f"🟡 STATUS: Downloading metadata for: {url}")
@@ -50,13 +57,13 @@ def extract():
             
             print(f"🟢 SUCCESS: Title mil gaya -> {info.get('title')}")
             
-            # 👇 YAHAN HAI MAGIC FIX 👇
-            # Hum 'success' ki jagah True bhej rahe hain aur 'link' bhi add kar rahe hain
+            # 👇 YAHAN FIX KIYA HAI 👇
+            # 'True' (Boolean) hata kar "true" (String) kar diya
             return jsonify({
-                "status": True,               # Bot ko 'True' pasand hai
+                "status": "true",             # String format taaki .lower() kaam kare
                 "title": info.get('title'),
-                "url": info.get('url'),       # Asli download link
-                "link": info.get('url'),      # Backup (kabhi kabhi bot 'link' dhoondta hai)
+                "url": info.get('url'),
+                "link": info.get('url'),
                 "duration": info.get('duration'),
                 "thumbnail": info.get('thumbnail')
             })
@@ -64,9 +71,9 @@ def extract():
     except Exception as e:
         error_msg = str(e)
         print(f"🔴 CRASH: {error_msg}")
-        # Error aane par bhi hum structure maintain karenge
-        return jsonify({"status": False, "error": error_msg}), 500
+        # Error me bhi string bhejenge
+        return jsonify({"status": "false", "error": error_msg}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-    
+
